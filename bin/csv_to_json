@@ -1,0 +1,49 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'csv'
+require 'json'
+require 'optparse'
+
+options = {
+  headers: [],
+  converters: [],
+  stream: false
+}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{$PROGRAM_NAME} [options] [FILE]"
+
+  opts.on('--headers=x,y,z', Array) do |headers|
+    options[:headers] = headers
+  end
+
+  opts.on('--converters=x,y,z', Array) do |converters|
+    options[:converters] = converters.map!(&:to_sym)
+  end
+
+  opts.on('--[no-]stream') do |stream|
+    options[:stream] = stream
+  end
+
+  opts.on('-h', '--help', 'Prints this help') do
+    puts opts
+    exit
+  end
+end.parse!
+print '[' unless options[:stream]
+first_iter = true
+CSV.new(
+  ARGF,
+  headers: options[:headers].empty? ? true : options[:headers],
+  converters: options[:converters]
+).each do |row|
+  json = row.to_hash.to_json
+  if options[:stream]
+    puts json
+  else
+    first_iter ? first_iter = false : print(',')
+    print json
+  end
+end
+print ']' unless options[:stream]
